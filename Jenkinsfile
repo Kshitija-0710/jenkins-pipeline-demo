@@ -2,16 +2,16 @@ pipeline {
     agent any
 
     environment {
-        // Use the credentials ID you created in Jenkins
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
         IMAGE_NAME = "kshitija1510/jenkins-pipeline-demo"
         IMAGE_TAG = "latest"
+        CONTAINER_NAME = "jenkins-demo"
+        APP_PORT = "5000"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // Checkout the repo
                 checkout scm
             }
         }
@@ -24,7 +24,6 @@ pipeline {
 
         stage('Docker Login') {
             steps {
-                // Use DockerHub credentials from Jenkins
                 sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
             }
         }
@@ -35,9 +34,13 @@ pipeline {
             }
         }
 
-        stage('Deploy (Optional)') {
+        stage('Deploy') {
             steps {
-                echo "Deployment can be done here, e.g., docker run -d -p 5000:5000 $IMAGE_NAME:$IMAGE_TAG"
+                // Stop existing container if running
+                sh "docker stop $CONTAINER_NAME || true"
+                sh "docker rm $CONTAINER_NAME || true"
+                // Run new container
+                sh "docker run -d -p $APP_PORT:$APP_PORT --name $CONTAINER_NAME $IMAGE_NAME:$IMAGE_TAG"
             }
         }
     }
@@ -47,7 +50,7 @@ pipeline {
             echo "Pipeline finished"
         }
         success {
-            echo "Docker image successfully pushed!"
+            echo "Docker image pushed and deployed successfully!"
         }
         failure {
             echo "Pipeline failed!"
